@@ -4,16 +4,10 @@
 import '../protocol/core/Tron_pb.cjs';
 const {
     Transaction,
-    // Permission,
-    // Key
 } = globalThis.TronWebProto;
 
 import '../protocol/core/contract/balance_contract_pb.cjs';
 const {
-    // TransferContract,
-    // FreezeBalanceContract,
-    // UnfreezeBalanceContract,
-    // WithdrawBalanceContract,
     FreezeBalanceV2Contract,
     UnfreezeBalanceV2Contract,
     CancelAllUnfreezeV2Contract,
@@ -22,38 +16,10 @@ const {
     UnDelegateResourceContract,
 } = globalThis.TronWebProto;
 
-// import '../protocol/core/contract/asset_issue_contract_pb.cjs';
-// const { TransferAssetContract, ParticipateAssetIssueContract, AssetIssueContract, UpdateAssetContract } = globalThis.TronWebProto;
-
 import '../protocol/core/contract/smart_contract_pb.cjs';
 const {
     TriggerSmartContract,
-    // ClearABIContract,
-    // UpdateEnergyLimitContract,
-    // UpdateSettingContract,
-    // CreateSmartContract,
-    // SmartContract,
 } = globalThis.TronWebProto;
-
-// import '../protocol/core/contract/common_pb.cjs';
-// const { ResourceCode } = globalThis.TronWebProto;
-
-// import '../protocol/core/contract/witness_contract_pb.cjs';
-// const { WitnessCreateContract, VoteWitnessContract } = globalThis.TronWebProto;
-
-// import '../protocol/core/contract/storage_contract_pb.cjs';
-// const { UpdateBrokerageContract } = globalThis.TronWebProto;
-
-// import '../protocol/core/contract/account_contract_pb.cjs';
-// const { AccountCreateContract, AccountUpdateContract, SetAccountIdContract, AccountPermissionUpdateContract } =
-    // globalThis.TronWebProto;
-
-// import '../protocol/core/contract/proposal_contract_pb.cjs';
-// const { ProposalCreateContract, ProposalDeleteContract, ProposalApproveContract } = globalThis.TronWebProto;
-
-// import '../protocol/core/contract/exchange_contract_pb.cjs';
-// const { ExchangeCreateContract, ExchangeInjectContract, ExchangeWithdrawContract, ExchangeTransactionContract } =
-    // globalThis.TronWebProto;
 
 import { byteArray2hexStr } from './bytes.js';
 import { hexStr2byteArray } from './code.js';
