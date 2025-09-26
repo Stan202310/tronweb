@@ -2141,7 +2141,11 @@ export class TransactionBuilder {
         }
 
         if (!Array.isArray(activesPermissions)) {
-            activesPermissions = [activesPermissions!];
+            if (!activesPermissions) {
+                activesPermissions = [];
+            } else {
+                activesPermissions = [activesPermissions];
+            }
         }
 
         for (const activesPermission of activesPermissions) {
