@@ -2993,6 +2993,8 @@ describe('TronWeb.transactionBuilder', function () {
                 permissionData.actives,
             );
             assert.isObject(tx);
+            const { receipt } = await broadcaster(null, accounts.pks[6], tx);
+            assert.isTrue(receipt.result);
         });
     });
 
