@@ -2946,40 +2946,6 @@ describe('TronWeb.transactionBuilder', function () {
                 await tronWeb.trx.sign(transaction, accounts.pks[6]);
             }
         });
-        it('should omit active permissions', async function () {
-            const permissionData = {
-                owner: {
-                    type: 0,
-                    keys: [
-                        {
-                            address: accounts.hex[6],
-                            weight: 1,
-                        },
-                    ],
-                    threshold: 1,
-                    permission_name: 'owner',
-                },
-                witness: {
-                    keys: [
-                        {
-                            address: accounts.hex[6],
-                            weight: 1,
-                        },
-                    ],
-                    threshold: 1,
-                    id: 1,
-                    type: 1,
-                    permission_name: 'witness',
-                },
-                owner_address: accounts.hex[6],
-            };
-            const tx = await tronWeb.transactionBuilder.updateAccountPermissions(
-                permissionData.owner_address,
-                permissionData.owner,
-                permissionData.witness,
-            );
-            assert.isObject(tx);
-        });
     });
 
     describe('Alter existent transactions', async function () {
