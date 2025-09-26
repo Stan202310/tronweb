@@ -2955,6 +2955,10 @@ describe('TronWeb.transactionBuilder', function () {
                             address: accounts.hex[6],
                             weight: 1,
                         },
+                        {
+                            address: accounts.hex[7],
+                            weight: 1,
+                        },
                     ],
                     threshold: 1,
                     permission_name: 'owner',
@@ -2995,6 +2999,10 @@ describe('TronWeb.transactionBuilder', function () {
             assert.isObject(tx);
             const { receipt } = await broadcaster(null, accounts.pks[6], tx);
             assert.isTrue(receipt.result);
+            const sendTx = await tronWeb.transactionBuilder.sendTrx(accounts.hex[7], 1e6, accounts.hex[6]);
+            const signedSendTx = await tronWeb.trx.multiSign(sendTx, accounts.pks[7]);
+            const receipt2 = await tronWeb.trx.sendRawTransaction(signedSendTx);
+            assert.isTrue(receipt2.result);
         });
     });
 
