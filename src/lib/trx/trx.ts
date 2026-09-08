@@ -60,12 +60,15 @@ export class Trx extends AbstractTrx<false> {
         if (!transaction.signature?.length) {
             throw new Error('Transaction is not signed');
         }
+        // Read txID once so every signature is recovered against the same value — a getter or
+        // Proxy must not be able to hand a different txID to each recovery.
+        const txID = transaction.txID;
         if (transaction.signature.length === 1) {
-            const tronAddress = ecRecover(transaction.txID, transaction.signature[0]);
+            const tronAddress = ecRecover(txID, transaction.signature[0]);
             return TronWeb.address.fromHex(tronAddress);
         }
         return transaction.signature.map((sig) => {
-            const tronAddress = ecRecover(transaction.txID, sig);
+            const tronAddress = ecRecover(txID, sig);
             return TronWeb.address.fromHex(tronAddress);
         });
     }

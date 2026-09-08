@@ -11,6 +11,10 @@ __6.6.0__
 
   As a consequence the caller's object is no longer mutated: `sign` no longer appends to its `signature` array and `multiSign` no longer writes `Permission_id` into it. Use the returned transaction, which both methods have always returned — code that ignored the return value and kept using the object it passed in must switch to the returned one.
 
+- `ecRecover` reads `txID` once
+
+  `ecRecover` now reads `txID` from the transaction a single time and recovers every signature against that value. Previously it re-read `txID` for each signature, so a `Proxy` or a getter could hand a different `txID` to each recovery of a multi-signed transaction.
+
 __6.5.0__
 
 ## New Features
