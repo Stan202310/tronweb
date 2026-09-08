@@ -23,6 +23,7 @@ import tronWebBuilder from '../helpers/tronWebBuilder';
 import assertEqualHex from '../helpers/assertEqualHex';
 import {
     AccountCreateContract,
+    AccountPermissionUpdateContract,
     AccountUpdateContract,
     AssetIssueContract,
     ClearABIContract,
@@ -31,6 +32,7 @@ import {
     FreezeBalanceContract,
     FreezeBalanceV2Contract,
     ParticipateAssetIssueContract,
+    Permission,
     ProposalCreateContract,
     ProposalDeleteContract,
     SetAccountIdContract,
@@ -3062,6 +3064,47 @@ describe('TronWeb.transactionBuilder', function () {
                 permissionData.actives
             );
             assert.isObject(tx);
+        });
+        it('should copy every permission once at entry and build from that copy', async function () {
+            const firstKeys = [{ address: accounts.hex[6], weight: 1 }];
+            const laterKeys = [{ address: accounts.hex[7], weight: 2 }];
+            // `keys` hands out one valid list on the first read and a different valid list afterwards
+            function withSwappingKeys(base: Omit<Permission, 'keys'>) {
+                let reads = 0;
+                const permission = { ...base } as Permission;
+                Object.defineProperty(permission, 'keys', {
+                    enumerable: true,
+                    get() {
+                        reads++;
+                        return reads === 1 ? firstKeys : laterKeys;
+                    },
+                });
+                return { permission, reads: () => reads };
+            }
+            const owner = withSwappingKeys({ type: 0, threshold: 1, permission_name: 'owner' });
+            const witness = withSwappingKeys({ type: 1, id: 1, threshold: 1, permission_name: 'witness' });
+            const active = withSwappingKeys({
+                type: 2,
+                id: 2,
+                threshold: 1,
+                permission_name: 'active',
+                operations: '7fff1fc0033e0000000000000000000000000000000000000000000000000000',
+            });
+
+            const tx = await tronWeb.transactionBuilder.updateAccountPermissions(
+                accounts.hex[6],
+                owner.permission,
+                witness.permission,
+                [active.permission]
+            );
+
+            const value = txPars(tx).value as AccountPermissionUpdateContract;
+            assert.deepEqual(value.owner!.keys, firstKeys);
+            assert.deepEqual(value.witness!.keys, firstKeys);
+            assert.deepEqual(value.actives![0].keys, firstKeys);
+            assert.equal(owner.reads(), 1);
+            assert.equal(witness.reads(), 1);
+            assert.equal(active.reads(), 1);
         });
     });
 

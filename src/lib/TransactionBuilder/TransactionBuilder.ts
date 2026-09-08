@@ -2354,6 +2354,12 @@ export class TransactionBuilder {
     ): Promise<Transaction<AccountPermissionUpdateContract>> {
         if (!TronWeb.isAddress(ownerAddress as Address)) throw new Error('Invalid ownerAddress provided');
 
+        // Copy every permission before anything reads it, so validation and the
+        // built contract see the same data and the caller's objects stay untouched.
+        ownerPermission = ownerPermission && deepCopyJson<Permission>(ownerPermission);
+        witnessPermission = witnessPermission && deepCopyJson<Permission>(witnessPermission);
+        activesPermissions = activesPermissions && deepCopyJson<Permission | Permission[]>(activesPermissions);
+
         if (!this.checkPermissions(ownerPermission, 0)) {
             throw new Error('Invalid ownerPermissions provided');
         }
@@ -2376,7 +2382,7 @@ export class TransactionBuilder {
             owner_address: toHex(ownerAddress as string),
         };
         if (ownerPermission) {
-            const _ownerPermissions = deepCopyJson<Partial<Permission>>(ownerPermission);
+            const _ownerPermissions: Partial<Permission> = ownerPermission;
             // for compatible with old way of building transaction from chain which type prop is omitted
             if ('type' in _ownerPermissions) {
                 delete _ownerPermissions.type;
@@ -2388,32 +2394,30 @@ export class TransactionBuilder {
             data.owner = _ownerPermissions as Permission;
         }
         if (witnessPermission) {
-            const _witnessPermissions = deepCopyJson<Permission>(witnessPermission);
             // for compatible with old way of building transaction from chain which type prop is Witness
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            _witnessPermissions.type = 'Witness';
-            _witnessPermissions.keys = _witnessPermissions.keys.map(({ address, weight }) => ({
+            witnessPermission.type = 'Witness';
+            witnessPermission.keys = witnessPermission.keys.map(({ address, weight }) => ({
                 address: toHex(address),
                 weight,
             }));
-            data.witness = _witnessPermissions;
+            data.witness = witnessPermission;
         }
         if (activesPermissions) {
-            const _activesPermissions = deepCopyJson<Permission[]>(activesPermissions);
             // for compatible with old way of building transaction from chain which type prop is Active
-            _activesPermissions.forEach((activePermissions: Permission) => {
+            activesPermissions.forEach((activePermissions: Permission) => {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 activePermissions.type = 'Active';
             });
-            _activesPermissions.forEach((_activesPermission) => {
-                _activesPermission.keys = _activesPermission.keys.map(({ address, weight }) => ({
+            activesPermissions.forEach((activePermissions) => {
+                activePermissions.keys = activePermissions.keys.map(({ address, weight }) => ({
                     address: toHex(address),
                     weight,
                 }));
             });
-            data.actives = _activesPermissions as Permission[];
+            data.actives = activesPermissions;
         }
 
         const transactionOptions = getTransactionOptions(options);
