@@ -323,13 +323,9 @@ async function invokeWrite(
 }
 
 /**
- * Deep-copies ABI fragment `index` into plain data before the namespace builders read it.
- *
- * The builders read a fragment several times — its mutability, its name for the name key,
- * its name and inputs again for the selector key — so a `Proxy` or a getter could hand each
- * read a different value and the two keys would describe different functions. The copy reads
- * every property exactly once; anything that is not plain ABI data (functions, `Date`,
- * circular references, ...) is rejected with `Invalid ABI provided: <reason> at <path>`.
+ * Deep-copies ABI fragment `index` into plain data. Anything that is not plain ABI data
+ * (functions, `Date`, circular references, ...) is rejected with
+ * `Invalid ABI provided: <reason> at <path>`.
  */
 function snapshotFragment(fragment: FunctionFragment, index: number): FunctionFragment {
     return clonePlainData(fragment, {

@@ -60,8 +60,6 @@ export class Trx extends AbstractTrx<false> {
         if (!transaction.signature?.length) {
             throw new Error('Transaction is not signed');
         }
-        // Read txID once so every signature is recovered against the same value — a getter or
-        // Proxy must not be able to hand a different txID to each recovery.
         const txID = transaction.txID;
         if (transaction.signature.length === 1) {
             const tronAddress = ecRecover(txID, transaction.signature[0]);
@@ -156,9 +154,6 @@ export class Trx extends AbstractTrx<false> {
             throw new Error('Invalid transaction provided');
         }
 
-        // Validation and signing read the transaction at different moments, so a Proxy or a
-        // getter could pass `txCheck` with one txID and hand another to the signer. Clone it
-        // once, up front, and read every field below from the copy — never from the caller's object.
         const tx = cloneTransaction(transaction as Transaction | SignedTransaction);
 
         if (!multisig && (tx as SignedTransaction).signature) {
@@ -252,7 +247,6 @@ export class Trx extends AbstractTrx<false> {
             throw new Error('Invalid transaction provided');
         }
 
-        // Same as in sign(): clone once, up front, and read every field below from the copy.
         transaction = cloneTransaction(transaction);
 
         if (!transaction.raw_data || !transaction.raw_data.contract) {
