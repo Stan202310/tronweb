@@ -27,6 +27,10 @@ __6.6.0__
 
   The namespace builders now deep-copy each `function` fragment of the ABI into plain data before reading it, and derive the mutability, the name key and the selector key from that copy. Previously a fragment was read several times — its mutability, then its name for the name key, then its name and inputs again for the selector key — so a `Proxy` or a getter could hand each read a different value and the name key and the selector key of one entry could describe different functions. A function fragment that is not plain data (functions, `Date`, circular references, ...) is rejected when the namespace is first accessed with `Invalid ABI provided: <reason> at abi[<index>].<path>`. The caller's ABI is not modified.
 
+- `triggerSmartContract` reads its options from a snapshot
+
+  `triggerSmartContract` now deep-copies `options` into plain data once at entry, before anything reads them, and both the remote path and the local (`txLocal`) path read every option from that copy. Previously the caller's object was read several times — `_isConstant` for the `fee_limit`, for the choice of endpoint and for the check of the transaction the node returned, `blockHeader` once per field, and likewise `estimateEnergy`, `confirmed`, `permissionId`, `rawParameter` and `shieldedParameter` — so a `Proxy` or a getter could hand each read a different value: the transaction could be built without `fee_limit`, sent to `triggerconstantcontract` instead of `triggersmartcontract`, accepted from the node without the check that it matches the request, or given the expiration of one read and the block reference of another. The copy keeps `bigint` values and the `Uint8Array` arguments of `parametersV2`; options that are not plain data (functions, `Date`, circular references, ...) are rejected with `Invalid options provided: <reason> at <path>`. The contract methods' `.call()` / `.send()` and the `contract.write` namespace go through `triggerSmartContract` and get the same guarantee. The caller's object is not modified.
+
 __6.5.0__
 
 ## New Features

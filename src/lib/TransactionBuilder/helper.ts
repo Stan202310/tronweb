@@ -1,6 +1,7 @@
 import { TronWeb } from '../../tronweb.js';
 import { Transaction, TransactionWrapper } from '../../types/Transaction.js';
 import { txCheckWithArgs, txJsonToPb, txPbToTxID, txPbToRawDataHex } from '../../utils/transaction.js';
+import { clonePlainData } from '../../utils/clonePlainData.js';
 import { keccak256 } from '../../utils/ethersUtils.js';
 import { hexStr2byteArray } from '../../utils/code.js';
 import { ContractParamter, ContractType } from '../../types/Contract.js';
@@ -25,6 +26,24 @@ export function resultManager(transaction: TransactionWrapper, data: unknown, op
         return transaction;
     }
     throw new Error('Invalid transaction');
+}
+
+/**
+ * Deep-copies the options of `triggerSmartContract` into plain data before anything reads them.
+ *
+ * The options are read several times — `_isConstant` for the fee_limit, the endpoint and the
+ * check of the result, `blockHeader` once per field, `permissionId`, `rawParameter`, ... — so a
+ * `Proxy` or a getter could hand each read a different value. The copy reads every property
+ * exactly once and keeps `Uint8Array` values (`bytes` arguments in `parametersV2`); anything
+ * else that is not plain data (functions, `Date`, circular references, ...) is rejected with
+ * `Invalid options provided: <reason> at <path>`.
+ */
+export function cloneTriggerOptions<T>(options: T): T {
+    return clonePlainData(options, {
+        root: 'options',
+        bytes: true,
+        invalid: (reason, path) => new Error(`Invalid options provided: ${reason} at ${path}`),
+    });
 }
 
 export function resultManagerTriggerSmartContract(
