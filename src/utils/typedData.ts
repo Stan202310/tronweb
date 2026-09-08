@@ -19,6 +19,7 @@ import {
 import type { BigNumberish, BytesLike, SignatureLike } from 'ethers';
 
 import { toHex } from './address.js';
+import { clonePlainData } from './clonePlainData.js';
 import { ADDRESS_PREFIX_REGEX } from './constants.js';
 
 function getAddress(address: string) {
@@ -676,12 +677,38 @@ export class TypedDataEncoder {
     }
 }
 
+// A deep copy of a `signTypedData` input, taken before anything reads it — see `clonePlainData`.
+// Accepts `Uint8Array` values (`salt`, `bytes`, `bytesN`) and rejects anything that is not typed
+// data with `Invalid typed data: <reason> at <path>`.
+function cloneInput<T>(input: T, root: string): T {
+    return clonePlainData(input, {
+        root,
+        bytes: true,
+        invalid: (reason, path) => new Error(`Invalid typed data: ${reason} at ${path}`),
+    });
+}
+
+// Copies a leaf of the `value` walk: `Uint8Array` leaves into fresh arrays, everything else as
+// is — primitives carry no traps, and the base encoders reject any other kind of object.
+function copyLeaf(_type: string, leaf: unknown): unknown {
+    return leaf instanceof Uint8Array ? new Uint8Array(leaf) : leaf;
+}
+
 export function signTypedData(
     domain: TypedDataDomain,
     types: Record<string, Array<TypedDataField>>,
     value: Record<string, any>,
     privateKey: string
 ) {
+    // Snapshot every input before anything reads it. The encoder reads the domain and the types
+    // more than once (validation first, encoding after), so a Proxy or a getter could otherwise
+    // show validation one value and hand the signer another. `domain` and `types` are deep-copied;
+    // `value` is copied field by field along `types`, reading each field once, so fields outside
+    // the types stay ignored as before.
+    domain = cloneInput(domain, 'domain');
+    types = cloneInput(types, 'types');
+    value = TypedDataEncoder.from(types).visit(value, copyLeaf);
+
     const key = `0x${privateKey.replace(/^0x/, '')}`;
     const signingKey = new SigningKey(key);
 

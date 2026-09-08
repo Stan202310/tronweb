@@ -95,4 +95,121 @@ describe('TronWeb.utils.typedData', function () {
             );
         });
     });
+
+    describe('#signTypedData', function () {
+        const privateKey = '0x' + '01'.repeat(32);
+
+        const domain = {
+            name: 'Snapshot Test',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+        };
+
+        const types = {
+            Mail: [{ name: 'contents', type: 'string' }],
+        };
+
+        const value = { contents: 'Hello, Bob!' };
+
+        const sign = (d: Record<string, any>, t: Record<string, any>, v: Record<string, any>) =>
+            utils.typedData.signTypedData(d, t, v, privateKey);
+
+        // A shallow copy of `target` whose `key` is an accessor answering `first` on the first read
+        // and `later` on every read after that — the shape of a Proxy or getter that shows the
+        // encoder one thing while it validates and something else while it encodes.
+        function withSwappingGetter<T extends object>(target: T, key: keyof T, first: unknown, later: unknown): T {
+            let reads = 0;
+            const trapped = { ...target };
+            Object.defineProperty(trapped, key, {
+                enumerable: true,
+                configurable: true,
+                get: () => (reads++ === 0 ? first : later),
+            });
+            return trapped;
+        }
+
+        it('signs the domain it read first when a domain getter changes its answer between reads', function () {
+            const trapped = withSwappingGetter(domain, 'chainId', 1, 2);
+
+            const signature = sign(trapped, types, value);
+
+            assert.equal(signature, sign({ ...domain, chainId: 1 }, types, value));
+        });
+
+        it('signs the types it read first when a types getter changes its answer between reads', function () {
+            const honest = [{ name: 'contents', type: 'string' }];
+            const swapped = [
+                { name: 'contents', type: 'string' },
+                { name: 'extra', type: 'string' },
+            ];
+            const trapped = withSwappingGetter(types, 'Mail', honest, swapped);
+
+            const signature = sign(domain, trapped, value);
+
+            assert.equal(signature, sign(domain, { Mail: honest }, value));
+        });
+
+        it('signs the value it read first when a value getter changes its answer between reads', function () {
+            const trapped = withSwappingGetter(value, 'contents', 'Hello, Bob!', 'Goodbye, Bob!');
+
+            const signature = sign(domain, types, trapped);
+
+            assert.equal(signature, sign(domain, types, { contents: 'Hello, Bob!' }));
+        });
+
+        it('does not touch the caller objects', function () {
+            const d = { ...domain };
+            const t = { Mail: [{ name: 'contents', type: 'string' }] };
+            const v = { ...value };
+
+            sign(d, t, v);
+
+            assert.deepEqual(d, domain);
+            assert.deepEqual(t, types);
+            assert.deepEqual(v, value);
+        });
+
+        it('accepts Uint8Array bytes values and bigint numbers, like the hex and string forms', function () {
+            const bytesTypes = {
+                Msg: [
+                    { name: 'payload', type: 'bytes' },
+                    { name: 'hash', type: 'bytes32' },
+                    { name: 'amount', type: 'uint256' },
+                ],
+            };
+            const hash = new Uint8Array(32).fill(7);
+            const payload = new Uint8Array([1, 2, 3]);
+            const salt = new Uint8Array(32).fill(9);
+            const hex = (bytes: Uint8Array) => '0x' + Buffer.from(bytes).toString('hex');
+
+            const signature = sign({ ...domain, salt }, bytesTypes, { payload, hash, amount: 2n ** 64n });
+
+            assert.equal(
+                signature,
+                sign({ ...domain, salt: hex(salt) }, bytesTypes, {
+                    payload: hex(payload),
+                    hash: hex(hash),
+                    amount: (2n ** 64n).toString(),
+                })
+            );
+        });
+
+        it('keeps ignoring value fields outside the types', function () {
+            const signature = sign(domain, types, { contents: 'Hello, Bob!', deadline: new Date(), self: value });
+
+            assert.equal(signature, sign(domain, types, value));
+        });
+
+        it('rejects a domain or types that are not plain typed data, naming the path', function () {
+            assert.throws(
+                () => sign({ ...domain, chainId: () => 1 }, types, value),
+                'Invalid typed data: unsupported function at domain.chainId'
+            );
+
+            const circular: Record<string, any> = { Mail: [{ name: 'contents', type: 'string' }] };
+            circular.Mail.push(circular);
+            assert.throws(() => sign(domain, circular, value), 'Invalid typed data: circular reference at types.Mail[1]');
+        });
+    });
 });
