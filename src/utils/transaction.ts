@@ -1008,3 +1008,4 @@ const txPbToTxID = (transactionPb) => {
 };
 
 export { txJsonToPb, txPbToTxID, txPbToRawDataHex, txJsonToPbWithArgs, txCheckWithArgs, txCheck };
+export { cloneTransaction } from './cloneTransaction.js';

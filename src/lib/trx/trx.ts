@@ -5,7 +5,7 @@ import { ADDRESS_PREFIX } from '../../utils/constants.js';
 import { fromHex, toHex } from '../../utils/address.js';
 import { AbstractTrx } from './AbstractTrx.js';
 import { RawTrx } from './RawTrx.js';
-import { txCheck, txCheckWithArgs } from '../../utils/transaction.js';
+import { txCheck, txCheckWithArgs, cloneTransaction } from '../../utils/transaction.js';
 import { ecRecover } from '../../utils/crypto.js';
 import { BroadcastReturn, AddressOptions, BroadcastHexReturn, Address } from '../../types/Trx.js';
 import { SignedTransaction, Transaction } from '../../types/Transaction.js';
@@ -153,23 +153,28 @@ export class Trx extends AbstractTrx<false> {
             throw new Error('Invalid transaction provided');
         }
 
-        if (!multisig && (transaction as SignedTransaction).signature) {
+        // Validation and signing read the transaction at different moments, so a Proxy or a
+        // getter could pass `txCheck` with one txID and hand another to the signer. Clone it
+        // once, up front, and read every field below from the copy — never from the caller's object.
+        const tx = cloneTransaction(transaction as Transaction | SignedTransaction);
+
+        if (!multisig && (tx as SignedTransaction).signature) {
             throw new Error('Transaction is already signed');
         }
 
         if (!multisig) {
             const address = toHex(this.tronWeb.address.fromPrivateKey(privateKey as string) as string).toLowerCase();
 
-            if (address !== toHex(transaction.raw_data.contract[0].parameter.value.owner_address)) {
+            if (address !== toHex(tx.raw_data.contract[0].parameter.value.owner_address)) {
                 throw new Error('Private key does not match address in transaction');
             }
         }
 
-        if (!txCheck(transaction)) {
+        if (!txCheck(tx)) {
             throw new Error('Invalid transaction');
         }
 
-        return utils.crypto.signTransaction(privateKey as string, transaction) as SignedStringOrSignedTransaction<T>;
+        return utils.crypto.signTransaction(privateKey as string, tx) as SignedStringOrSignedTransaction<T>;
     }
 
     static signString(message: string, privateKey: string, useTronHeader = true) {
@@ -240,7 +245,14 @@ export class Trx extends AbstractTrx<false> {
     }
 
     async multiSign(transaction: Transaction, privateKey = this.tronWeb.defaultPrivateKey, permissionId = 0) {
-        if (!utils.isObject(transaction) || !transaction.raw_data || !transaction.raw_data.contract) {
+        if (!utils.isObject(transaction)) {
+            throw new Error('Invalid transaction provided');
+        }
+
+        // Same as in sign(): clone once, up front, and read every field below from the copy.
+        transaction = cloneTransaction(transaction);
+
+        if (!transaction.raw_data || !transaction.raw_data.contract) {
             throw new Error('Invalid transaction provided');
         }
 

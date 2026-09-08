@@ -1,6 +1,16 @@
 Change Log
 =========
 
+__6.6.0__
+
+## Improvements
+
+- `sign` / `multiSign` validate and sign a snapshot of the transaction
+
+  Both methods now deep-copy the transaction with the new `utils.transaction.cloneTransaction` before reading any of its fields, and run every check and the signature itself against that plain copy. Previously the caller's object was read several times across validation and signing, so a `Proxy` or a getter could present one `txID` to `txCheck` and a different one to the signer. `cloneTransaction` reads every property exactly once into fresh plain objects and arrays, keeps `bigint` values (a JSON round-trip cannot), and rejects circular references and values that are not plain transaction data (functions, `Date`, typed arrays, ...) with `Invalid transaction provided: <reason> at <path>`.
+
+  As a consequence the caller's object is no longer mutated: `sign` no longer appends to its `signature` array and `multiSign` no longer writes `Permission_id` into it. Use the returned transaction, which both methods have always returned — code that ignored the return value and kept using the object it passed in must switch to the returned one.
+
 __6.5.0__
 
 ## New Features
