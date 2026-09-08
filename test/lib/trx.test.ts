@@ -836,6 +836,23 @@ describe('TronWeb.trx', function () {
                 assert.isTrue(result);
             });
 
+            it('signs a snapshot of the domain when a getter changes its answer between reads', function () {
+                const idx = 14;
+                let reads = 0;
+                const trapped = { ...domain };
+                // Answers the real chainId on the first read and a different one on every later read.
+                Object.defineProperty(trapped, 'chainId', {
+                    enumerable: true,
+                    configurable: true,
+                    get: () => (reads++ === 0 ? domain.chainId : 999),
+                });
+
+                const signature = Trx.signTypedData(trapped, types, value, accounts.pks[idx]);
+
+                assert.equal(signature, Trx.signTypedData(domain, types, value, accounts.pks[idx]));
+                assert.isTrue(Trx.verifyTypedData(domain, types, value, signature, accounts.b58[idx]));
+            });
+
             it('should throw signature does not match error', function () {
                 const idx = 14;
 
