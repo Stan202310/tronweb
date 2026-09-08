@@ -19,6 +19,22 @@ const tests = signMessageTests.tests;
 const testRevertContract = contracts.testRevert;
 const { ADDRESS_BASE58, PRIVATE_KEY, getTokenOptions, FULL_NODE_API } = config;
 
+const FAKE_TXID = 'f'.repeat(64);
+
+// A shallow copy of `transaction` whose `txID` is an accessor answering the real txID on the
+// first `realReads` reads and FAKE_TXID on every later one — the shape of a Proxy or getter
+// that passes validation and then swaps the value handed to the signer / recoverer.
+function withSwappingTxID<T extends Transaction>(transaction: T, realReads = 1): T {
+    let reads = 0;
+    const trapped = { ...transaction };
+    Object.defineProperty(trapped, 'txID', {
+        enumerable: true,
+        configurable: true,
+        get: () => (reads++ < realReads ? transaction.txID : FAKE_TXID),
+    });
+    return trapped;
+}
+
 describe('TronWeb.trx', function () {
     let accounts: {
         hex: Address[];
@@ -548,21 +564,6 @@ describe('TronWeb.trx', function () {
 
         describe('#sign / #multiSign (transaction snapshot)', function () {
             const idx = 14;
-            const FAKE_TXID = 'f'.repeat(64);
-
-            // A shallow copy of `transaction` whose `txID` is an accessor answering the real
-            // txID on the first read and FAKE_TXID on every later one — the shape of a Proxy
-            // or getter that passes validation and then swaps the value handed to the signer.
-            function withSwappingTxID<T extends Transaction>(transaction: T): T {
-                let reads = 0;
-                const trapped = { ...transaction };
-                Object.defineProperty(trapped, 'txID', {
-                    enumerable: true,
-                    configurable: true,
-                    get: () => (reads++ === 0 ? transaction.txID : FAKE_TXID),
-                });
-                return trapped;
-            }
 
             it('sign should sign the txID it validated, not what a getter returns afterwards', async function () {
                 const transaction = await tronWeb.transactionBuilder.freezeBalanceV2(10e5, 'BANDWIDTH', accounts.b58[idx]);
@@ -655,6 +656,15 @@ describe('TronWeb.trx', function () {
                 for (let i = 0; i < recoveredAddresses.length; i++) {
                     assert.equal(recoveredAddresses[i], accounts.b58[idx+i]);
                 }
+            });
+
+            it('should read txID once and recover every signature against it, not re-read it per signature', async function () {
+                const tx = await tronWeb.transactionBuilder.sendTrx(accounts.b58[idx - 1], 10, accounts.b58[idx]);
+                const signed = await tronWeb.trx.multiSign(await tronWeb.trx.sign(tx, accounts.pks[idx]), accounts.pks[idx + 1]);
+
+                // txCheck reads txID once; the recovery gets one more real read and must not ask again.
+                const recovered = tronWeb.trx.ecRecover(withSwappingTxID(signed, 2));
+                assert.deepEqual(recovered, [accounts.b58[idx], accounts.b58[idx + 1]]);
             });
 
             it('should throw Invalid transaction error', async function () {
