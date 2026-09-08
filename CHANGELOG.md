@@ -23,6 +23,10 @@ __6.6.0__
 
   `newTxID` (and `extendExpiration` / `addUpdateData`, which go through it) now deep-copies the transaction with `utils.transaction.cloneTransaction` before reading any of its fields, and builds the new transaction from that plain copy. Previously the transaction was read several times — the request body or the local rebuild's contract first, then the contract value, `data` and `fee_limit` again for the check of the result — so a `Proxy` or a getter could hand each read a different value, and the local (`txLocal`) rebuild could combine the contract of one read with the expiration of another. A transaction that is not plain data is rejected with `Invalid transaction provided: <reason> at <path>`.
 
+- `contract.read` / `contract.write` build their entries from a snapshot of each ABI function fragment
+
+  The namespace builders now deep-copy each `function` fragment of the ABI into plain data before reading it, and derive the mutability, the name key and the selector key from that copy. Previously a fragment was read several times — its mutability, then its name for the name key, then its name and inputs again for the selector key — so a `Proxy` or a getter could hand each read a different value and the name key and the selector key of one entry could describe different functions. A function fragment that is not plain data (functions, `Date`, circular references, ...) is rejected when the namespace is first accessed with `Invalid ABI provided: <reason> at abi[<index>].<path>`. The caller's ABI is not modified.
+
 __6.5.0__
 
 ## New Features
