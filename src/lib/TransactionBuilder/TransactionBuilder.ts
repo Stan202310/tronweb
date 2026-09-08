@@ -7,6 +7,7 @@ import { CreateSmartContractTransaction, SignedTransaction, Transaction, Transac
 import { Validator } from '../../paramValidator/index.js';
 import { GetSignWeightResponse } from '../../types/APIResponse.js';
 import { isArray, isHex, isInteger, isNotNullOrUndefined, isObject, isString } from '../../utils/validations.js';
+import { cloneTransaction } from '../../utils/transaction.js';
 import {
     AccountCreateContract,
     AccountPermissionUpdateContract,
@@ -2434,6 +2435,11 @@ export class TransactionBuilder {
         transaction: U,
         options: { txLocal?: boolean } = {}
     ): Promise<U> {
+        // Both branches read the transaction several times (the request body, then the contract,
+        // data and fee_limit for the check), so a Proxy or a getter could hand each read a different
+        // value. Clone it once, up front, and read every field below from the copy.
+        transaction = cloneTransaction(transaction);
+
         if (options?.txLocal) {
             const contract = transaction.raw_data.contract[0];
             try {

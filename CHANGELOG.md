@@ -19,6 +19,10 @@ __6.6.0__
 
   `ecRecover` now reads `txID` from the transaction a single time and recovers every signature against that value. Previously it re-read `txID` for each signature, so a `Proxy` or a getter could hand a different `txID` to each recovery of a multi-signed transaction.
 
+- `newTxID` rebuilds from a snapshot of the transaction
+
+  `newTxID` (and `extendExpiration` / `addUpdateData`, which go through it) now deep-copies the transaction with `utils.transaction.cloneTransaction` before reading any of its fields, and builds the new transaction from that plain copy. Previously the transaction was read several times — the request body or the local rebuild's contract first, then the contract value, `data` and `fee_limit` again for the check of the result — so a `Proxy` or a getter could hand each read a different value, and the local (`txLocal`) rebuild could combine the contract of one read with the expiration of another. A transaction that is not plain data is rejected with `Invalid transaction provided: <reason> at <path>`.
+
 __6.5.0__
 
 ## New Features

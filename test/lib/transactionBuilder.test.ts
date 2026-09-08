@@ -10,7 +10,12 @@ import {
     VoteInfo,
     ContractFunctionParameter,
 } from '../../src/types/TransactionBuilder';
-import { ContractParamterWrapper, CreateSmartContractTransaction, SignedTransaction } from '../../src/types/Transaction';
+import {
+    ContractParamterWrapper,
+    CreateSmartContractTransaction,
+    SignedTransaction,
+    Transaction,
+} from '../../src/types/Transaction';
 
 import { assert } from 'vitest';
 import txPars from '../helpers/txPars.js';
@@ -3114,6 +3119,43 @@ describe('TronWeb.transactionBuilder', function () {
         // assert exact balance deltas on a shared sender, and both tests broadcast
         // near-identical transactions that could collide on txID if built together.
         describe.concurrent('#newTxID', async function () {
+            // `raw_data` hands out the real value on the first read and a copy with a later expiration afterwards
+            function withSwappingRawData<T extends Transaction>(transaction: T) {
+                const { raw_data, ...rest } = transaction;
+                const later = deepCopyJson<T['raw_data']>(raw_data);
+                later.expiration += 3600 * 1000;
+                let reads = 0;
+                const swapping = { ...rest } as T;
+                Object.defineProperty(swapping, 'raw_data', {
+                    enumerable: true,
+                    get() {
+                        reads++;
+                        return reads === 1 ? raw_data : later;
+                    },
+                });
+                return { transaction: swapping, reads: () => reads };
+            }
+
+            it('should copy the transaction once at entry and rebuild from that copy when txLocal is true', async function () {
+                const receiver = accounts.b58[42];
+                const sender = accounts.hex[43];
+                const transaction = await tronWeb.transactionBuilder.sendTrx(receiver, 10, sender);
+                const swapping = withSwappingRawData(transaction);
+                const transactionLater = await tronWeb.transactionBuilder.newTxID(swapping.transaction, { txLocal: true });
+                assert.equal(transactionLater.txID, transaction.txID);
+                assert.equal(swapping.reads(), 1);
+            });
+
+            it('should copy the transaction once at entry and rebuild from that copy when txLocal is unset', async function () {
+                const receiver = accounts.b58[42];
+                const sender = accounts.hex[43];
+                const transaction = await tronWeb.transactionBuilder.sendTrx(receiver, 10, sender);
+                const swapping = withSwappingRawData(transaction);
+                const transactionLater = await tronWeb.transactionBuilder.newTxID(swapping.transaction);
+                assert.equal(transactionLater.txID, transaction.txID);
+                assert.equal(swapping.reads(), 1);
+            });
+
             it('should keep txID unchanged when txLocal is true', async function () {
                 const receiver = accounts.b58[42];
                 const sender = accounts.hex[43];
