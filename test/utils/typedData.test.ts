@@ -116,8 +116,7 @@ describe('TronWeb.utils.typedData', function () {
             utils.typedData.signTypedData(d, t, v, privateKey);
 
         // A shallow copy of `target` whose `key` is an accessor answering `first` on the first read
-        // and `later` on every read after that — the shape of a Proxy or getter that shows the
-        // encoder one thing while it validates and something else while it encodes.
+        // and `later` on every read after that.
         function withSwappingGetter<T extends object>(target: T, key: keyof T, first: unknown, later: unknown): T {
             let reads = 0;
             const trapped = { ...target };

@@ -9,13 +9,8 @@ export interface ClonePlainDataOptions {
 
 /**
  * Deep-clones JSON-shaped data — primitives, `bigint`, arrays and plain objects, plus
- * `Uint8Array` when `bytes` is set — into fresh plain objects and arrays.
- *
- * Every property is read exactly once, so a `Proxy` or an accessor cannot hand one value
- * to validation and another to whatever reads the copy afterwards. The copy holds plain data
- * properties only and has `Object.prototype` as its prototype, so nothing of the caller's
- * object — traps, getters, class prototypes — survives. Unlike a JSON round-trip it keeps
- * `bigint` and `undefined` values as they are.
+ * `Uint8Array` when `bytes` is set — into fresh plain objects and arrays. Unlike a JSON
+ * round-trip it keeps `bigint` and `undefined` values as they are.
  *
  * Anything else (functions, symbols, `Date`, `Map`, ...) and circular references are
  * rejected with the error built by `options.invalid(reason, path)`.
@@ -41,7 +36,6 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
     }
 
     if (options.bytes && value instanceof Uint8Array) {
-        // A fresh, plain Uint8Array: reads each byte once and drops subclasses (Buffer) and traps.
         return new Uint8Array(value);
     }
 

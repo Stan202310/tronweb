@@ -682,9 +682,7 @@ describe('#contract.readWrite', function () {
     describe('#fragment snapshot', function () {
         // A shallow copy of `fragment` whose `name` is an accessor. Until `arm()` it answers
         // the real name (so the flat methods built by loadAbi are unaffected); once armed it
-        // answers the real name on the first read and 'swapped' on every later one — the
-        // shape of a Proxy or getter that hands the namespace builder one name for the key
-        // and another for the selector.
+        // answers the real name on the first read and 'swapped' on every later one.
         function withSwappingName<F extends { readonly name: string }>(fragment: F) {
             let armed = false;
             let reads = 0;

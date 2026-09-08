@@ -22,8 +22,7 @@ const { ADDRESS_BASE58, PRIVATE_KEY, getTokenOptions, FULL_NODE_API } = config;
 const FAKE_TXID = 'f'.repeat(64);
 
 // A shallow copy of `transaction` whose `txID` is an accessor answering the real txID on the
-// first `realReads` reads and FAKE_TXID on every later one — the shape of a Proxy or getter
-// that passes validation and then swaps the value handed to the signer / recoverer.
+// first `realReads` reads and FAKE_TXID on every later one.
 function withSwappingTxID<T extends Transaction>(transaction: T, realReads = 1): T {
     let reads = 0;
     const trapped = { ...transaction };

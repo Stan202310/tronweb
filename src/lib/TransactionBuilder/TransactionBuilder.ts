@@ -1020,10 +1020,6 @@ export class TransactionBuilder {
             };
             params.splice(3, 1);
         } else {
-            // Both branches read the options several times (_isConstant for the fee_limit, the endpoint
-            // and the check of the result, blockHeader once per field, permissionId, ...), so a Proxy
-            // or a getter could hand each read a different value. Deep-copy them once, up front, and
-            // read every field below from that plain copy.
             params[2] = cloneTriggerOptions(params[2] ?? {});
         }
         if (params[2]?.txLocal) {
@@ -2362,8 +2358,6 @@ export class TransactionBuilder {
     ): Promise<Transaction<AccountPermissionUpdateContract>> {
         if (!TronWeb.isAddress(ownerAddress as Address)) throw new Error('Invalid ownerAddress provided');
 
-        // Copy every permission before anything reads it, so validation and the
-        // built contract see the same data and the caller's objects stay untouched.
         ownerPermission = ownerPermission && deepCopyJson<Permission>(ownerPermission);
         witnessPermission = witnessPermission && deepCopyJson<Permission>(witnessPermission);
         activesPermissions = activesPermissions && deepCopyJson<Permission | Permission[]>(activesPermissions);
@@ -2442,9 +2436,6 @@ export class TransactionBuilder {
         transaction: U,
         options: { txLocal?: boolean } = {}
     ): Promise<U> {
-        // Both branches read the transaction several times (the request body, then the contract,
-        // data and fee_limit for the check), so a Proxy or a getter could hand each read a different
-        // value. Clone it once, up front, and read every field below from the copy.
         transaction = cloneTransaction(transaction);
 
         if (options?.txLocal) {
