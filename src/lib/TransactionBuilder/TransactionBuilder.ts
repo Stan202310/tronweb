@@ -50,6 +50,7 @@ import {
 } from '../../types/Contract.js';
 import {
     createTransaction,
+    cloneTriggerOptions,
     deepCopyJson,
     fromUtf8,
     genContractAddress,
@@ -1018,6 +1019,12 @@ export class TransactionBuilder {
                 callValue: params[3] as unknown as number,
             };
             params.splice(3, 1);
+        } else {
+            // Both branches read the options several times (_isConstant for the fee_limit, the endpoint
+            // and the check of the result, blockHeader once per field, permissionId, ...), so a Proxy
+            // or a getter could hand each read a different value. Deep-copy them once, up front, and
+            // read every field below from that plain copy.
+            params[2] = cloneTriggerOptions(params[2] ?? {});
         }
         if (params[2]?.txLocal) {
             return this._triggerSmartContractLocal(...params);
