@@ -1,7 +1,7 @@
 Change Log
 =========
 
-__6.6.0__
+__6.5.1__
 
 ## Improvements
 
