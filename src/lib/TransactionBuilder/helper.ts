@@ -1,7 +1,7 @@
 import { TronWeb } from '../../tronweb.js';
 import { Transaction, TransactionWrapper } from '../../types/Transaction.js';
 import { txCheckWithArgs, txJsonToPb, txPbToTxID, txPbToRawDataHex } from '../../utils/transaction.js';
-import { clonePlainData } from '../../utils/clonePlainData.js';
+import { clonePlainData } from '../../utils/clone.js';
 import { keccak256 } from '../../utils/ethersUtils.js';
 import { hexStr2byteArray } from '../../utils/code.js';
 import { ContractParamter, ContractType } from '../../types/Contract.js';

@@ -19,7 +19,7 @@ import {
 import type { BigNumberish, BytesLike, SignatureLike } from 'ethers';
 
 import { toHex } from './address.js';
-import { clonePlainData } from './clonePlainData.js';
+import { clonePlainData } from './clone.js';
 import { ADDRESS_PREFIX_REGEX } from './constants.js';
 
 function getAddress(address: string) {

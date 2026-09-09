@@ -1,6 +1,6 @@
 import { assert } from 'vitest';
 import { runInNewContext } from 'node:vm';
-import { clonePlainData } from '../../src/utils/clonePlainData.js';
+import { clonePlainData } from '../../src/utils/clone.js';
 
 // Builds a value in another realm. Its objects carry that realm's prototypes, so neither
 // `instanceof` nor an `Object.prototype` identity check recognises them from here.

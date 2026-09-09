@@ -2,7 +2,7 @@ import { TronWeb } from '../../tronweb.js';
 import utils from '../../utils/index.js';
 import { Method, AbiFragmentNoErrConstructor } from './method.js';
 import { buildReadNamespace, buildWriteNamespace } from './readWrite.js';
-import { clonePlainData } from '../../utils/clonePlainData.js';
+import { clonePlainData } from '../../utils/clone.js';
 import type { ContractReadNamespace, ContractWriteNamespace } from '../../types/Contract.js';
 import type { ContractAbiInterface, GetMethodsTypeFromAbi, GetOnMethodTypeFromAbi, AnyOnMethodType } from '../../types/ABI.js';
 import type { Address } from '../../types/Trx.js';

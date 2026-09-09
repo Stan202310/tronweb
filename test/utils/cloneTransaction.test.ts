@@ -1,7 +1,7 @@
 import { assert } from 'vitest';
-import { cloneTransaction } from '../../src/utils/cloneTransaction.js';
+import { cloneTransaction } from '../../src/utils/clone.js';
 
-describe('#TronWeb.utils.transaction.cloneTransaction', function () {
+describe('#TronWeb.utils.cloneTransaction', function () {
     const sample = () => ({
         visible: false,
         txID: 'ab'.repeat(32),

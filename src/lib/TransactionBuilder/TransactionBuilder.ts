@@ -7,7 +7,7 @@ import { CreateSmartContractTransaction, SignedTransaction, Transaction, Transac
 import { Validator } from '../../paramValidator/index.js';
 import { GetSignWeightResponse } from '../../types/APIResponse.js';
 import { isArray, isHex, isInteger, isNotNullOrUndefined, isObject, isString } from '../../utils/validations.js';
-import { cloneTransaction } from '../../utils/transaction.js';
+import { cloneTransaction } from '../../utils/clone.js';
 import {
     AccountCreateContract,
     AccountPermissionUpdateContract,
