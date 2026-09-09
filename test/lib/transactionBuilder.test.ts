@@ -2197,10 +2197,65 @@ describe('TronWeb.transactionBuilder', function () {
                 assert.equal(transaction.transaction.raw_data.contract[0].Permission_id || 0, options.permissionId || 0);
             }
         });
+
+        it("should leave the caller's options untouched", async function () {
+            const options: TriggerConstantContractOptions = {};
+            const tx = await tronWeb.transactionBuilder.triggerConstantContract(
+                contractAddress,
+                'testPure(uint256,uint256)',
+                options,
+                [
+                    { type: 'uint256', value: 1 },
+                    { type: 'uint256', value: 2 },
+                ],
+                accounts.hex[6]
+            );
+            assert.isTrue(tx.result.result);
+            assert.deepEqual(options, {});
+        });
+
+        it('should copy the options once at entry and read funcABIV2 from that copy', async function () {
+            const fragment = testConstant.abi.find((f: any) => f.name === 'testPure');
+            let reads = 0;
+            const options: TriggerConstantContractOptions = { parametersV2: [1, 2] };
+            Object.defineProperty(options, 'funcABIV2', {
+                enumerable: true,
+                get() {
+                    reads++;
+                    return fragment;
+                },
+            });
+            const tx = await tronWeb.transactionBuilder.triggerConstantContract(
+                contractAddress,
+                'testPure(uint256,uint256)',
+                options,
+                [],
+                accounts.hex[6]
+            );
+            assert.equal(tx.constant_result, '0000000000000000000000000000000000000000000000000000000000000004');
+            assert.equal(reads, 1);
+        });
+
+        it('should reject options that are not plain data', async function () {
+            await assertThrow(
+                tronWeb.transactionBuilder.triggerConstantContract(
+                    contractAddress,
+                    'testPure(uint256,uint256)',
+                    { onDone() {} } as unknown as TriggerConstantContractOptions,
+                    [
+                        { type: 'uint256', value: 1 },
+                        { type: 'uint256', value: 2 },
+                    ],
+                    accounts.hex[6]
+                ),
+                'Invalid options provided: unsupported function at options.onDone'
+            );
+        });
     });
 
     describe('#triggerComfirmedConstantContract', async function () {
         let transaction: any;
+        let contractAddress: string;
         beforeAll(async function () {
 
             transaction = await tronWeb.transactionBuilder.createSmartContract(
@@ -2220,6 +2275,7 @@ describe('TronWeb.transactionBuilder', function () {
                     break;
                 }
             }
+            contractAddress = transaction.contract_address;
         });
 
         it('should trigger confirmed constant contract successfully', async function () {
@@ -2254,6 +2310,38 @@ describe('TronWeb.transactionBuilder', function () {
                 assert.isTrue(transaction.receipt.result);
                 assert.equal(transaction.transaction.raw_data.contract[0].Permission_id || 0, options.permissionId || 0);
             }
+        });
+
+        it("should leave the caller's options untouched", async function () {
+            const options: TriggerConstantContractOptions = {};
+            const tx = await tronWeb.transactionBuilder.triggerConfirmedConstantContract(
+                contractAddress,
+                'testPure(uint256,uint256)',
+                options,
+                [
+                    { type: 'uint256', value: 1 },
+                    { type: 'uint256', value: 2 },
+                ],
+                accounts.hex[6]
+            );
+            assert.isTrue(tx.result.result);
+            assert.deepEqual(options, {});
+        });
+
+        it('should reject options that are not plain data', async function () {
+            await assertThrow(
+                tronWeb.transactionBuilder.triggerConfirmedConstantContract(
+                    contractAddress,
+                    'testPure(uint256,uint256)',
+                    { onDone() {} } as unknown as TriggerConstantContractOptions,
+                    [
+                        { type: 'uint256', value: 1 },
+                        { type: 'uint256', value: 2 },
+                    ],
+                    accounts.hex[6]
+                ),
+                'Invalid options provided: unsupported function at options.onDone'
+            );
         });
     });
 
@@ -3737,6 +3825,32 @@ describe('TronWeb.transactionBuilder', function () {
                 assert.isDefined(result.energy_required);
                 assert.isNumber(result.energy_required);
             }
+        });
+
+        it("should leave the caller's options untouched", async function () {
+            const options: TriggerConstantContractOptions = {};
+            const result = await tronWeb.transactionBuilder.estimateEnergy(
+                transaction.contract_address,
+                'set(uint256)',
+                options,
+                [{ type: 'uint256', value: 3 }],
+                accounts.hex[5]
+            );
+            assert.isTrue(result.result.result);
+            assert.deepEqual(options, {});
+        });
+
+        it('should reject options that are not plain data', async function () {
+            await assertThrow(
+                tronWeb.transactionBuilder.estimateEnergy(
+                    transaction.contract_address,
+                    'set(uint256)',
+                    { onDone() {} } as unknown as TriggerConstantContractOptions,
+                    [{ type: 'uint256', value: 3 }],
+                    accounts.hex[5]
+                ),
+                'Invalid options provided: unsupported function at options.onDone'
+            );
         });
     });
     describe.concurrent('#deployConstantContract', async function () {

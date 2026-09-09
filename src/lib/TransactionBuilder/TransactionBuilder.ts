@@ -1035,6 +1035,7 @@ export class TransactionBuilder {
         parameters: ContractFunctionParameter[] = [],
         issuerAddress: string = this.tronWeb.defaultAddress.hex as string
     ): Promise<TransactionWrapper> {
+        options = cloneTriggerOptions(options);
         options._isConstant = true;
         return this._triggerSmartContract(contractAddress, functionSelector, options, parameters, issuerAddress);
     }
@@ -1046,6 +1047,7 @@ export class TransactionBuilder {
         parameters: ContractFunctionParameter[] = [],
         issuerAddress: string = this.tronWeb.defaultAddress.hex as string
     ): Promise<TransactionWrapper> {
+        options = cloneTriggerOptions(options);
         options._isConstant = true;
         options.confirmed = true;
         return this._triggerSmartContract(contractAddress, functionSelector, options, parameters, issuerAddress);
@@ -1058,6 +1060,7 @@ export class TransactionBuilder {
         parameters: ContractFunctionParameter[] = [],
         issuerAddress: string = this.tronWeb.defaultAddress.hex as string
     ): Promise<{ result: { result: boolean }; energy_required: number }> {
+        options = cloneTriggerOptions(options);
         options.estimateEnergy = true;
         const result = await this._triggerSmartContract(contractAddress, functionSelector, options, parameters, issuerAddress);
         return result as { result: { result: boolean }; energy_required: number };
