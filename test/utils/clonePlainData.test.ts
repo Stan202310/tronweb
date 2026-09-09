@@ -47,4 +47,39 @@ describe('#TronWeb.utils.clonePlainData', function () {
             assert.throws(() => clonePlainData(input, options()), 'Invalid input: not a plain object at input.x');
         });
     });
+
+    describe('nesting depth', function () {
+        // `levels` nested objects, the root counting as one: nest(1) is {}, nest(2) is { a: {} }, ...
+        const nestObjects = (levels: number): Record<string, unknown> => {
+            let value: Record<string, unknown> = {};
+            for (let i = 1; i < levels; i++) value = { a: value };
+            return value;
+        };
+        const nestArrays = (levels: number): unknown[] => {
+            let value: unknown[] = [];
+            for (let i = 1; i < levels; i++) value = [value];
+            return value;
+        };
+
+        it('copies objects nested up to 64 levels deep', function () {
+            const out = clonePlainData(nestObjects(64), options());
+
+            assert.deepEqual(out, nestObjects(64));
+        });
+
+        it('rejects objects nested deeper than 64 levels, naming the path', function () {
+            assert.throws(
+                () => clonePlainData(nestObjects(65), options()),
+                `Invalid input: nesting deeper than 64 levels at input${'.a'.repeat(64)}`
+            );
+        });
+
+        it('counts arrays as levels too', function () {
+            assert.deepEqual(clonePlainData(nestArrays(64), options()), nestArrays(64));
+            assert.throws(
+                () => clonePlainData(nestArrays(65), options()),
+                `Invalid input: nesting deeper than 64 levels at input${'[0]'.repeat(64)}`
+            );
+        });
+    });
 });

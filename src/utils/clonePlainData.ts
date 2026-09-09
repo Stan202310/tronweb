@@ -12,15 +12,19 @@ export interface ClonePlainDataOptions {
  * `Uint8Array` when `bytes` is set — into fresh plain objects and arrays. Unlike a JSON
  * round-trip it keeps `bigint` and `undefined` values as they are.
  *
- * Anything else (functions, symbols, class instances, `Date`, `Map`, ...) and circular
- * references are rejected with the error built by `options.invalid(reason, path)`.
- * Values from another realm (an iframe, a vm context) are accepted like local ones.
+ * Anything else (functions, symbols, class instances, `Date`, `Map`, ...), circular
+ * references and nesting deeper than `MAX_DEPTH` levels are rejected with the error built
+ * by `options.invalid(reason, path)`. Values from another realm (an iframe, a vm context)
+ * are accepted like local ones.
  */
 export function clonePlainData<T>(value: T, options: ClonePlainDataOptions): T {
-    return clone(value, options.root, new Set(), options) as T;
+    return clone(value, options.root, 1, new Set(), options) as T;
 }
 
-function clone(value: unknown, path: string, ancestors: Set<object>, options: ClonePlainDataOptions): unknown {
+/** Objects and arrays are copied up to this many levels deep, the root counting as one. */
+const MAX_DEPTH = 64;
+
+function clone(value: unknown, path: string, depth: number, ancestors: Set<object>, options: ClonePlainDataOptions): unknown {
     switch (typeof value) {
         case 'string':
         case 'number':
@@ -50,6 +54,9 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
         }
     }
 
+    if (depth > MAX_DEPTH) {
+        throw options.invalid(`nesting deeper than ${MAX_DEPTH} levels`, path);
+    }
     if (ancestors.has(value)) {
         throw options.invalid('circular reference', path);
     }
@@ -60,7 +67,7 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
         const source = value as unknown[];
         const out: unknown[] = [];
         for (let i = 0, length = source.length; i < length; i++) {
-            out.push(clone(source[i], `${path}[${i}]`, ancestors, options));
+            out.push(clone(source[i], `${path}[${i}]`, depth + 1, ancestors, options));
         }
         copy = out;
     } else {
@@ -70,7 +77,7 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
             // Assigning an own `__proto__` key would re-target the copy's prototype
             // instead of adding a data property.
             if (key === '__proto__') continue;
-            out[key] = clone(source[key], `${path}.${key}`, ancestors, options);
+            out[key] = clone(source[key], `${path}.${key}`, depth + 1, ancestors, options);
         }
         copy = out;
     }
