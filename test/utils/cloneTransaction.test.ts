@@ -96,23 +96,25 @@ describe('#TronWeb.utils.transaction.cloneTransaction', function () {
         assert.equal(gets, getsDuringClone);
     });
 
-    it('copies own enumerable properties only and gives the copy a plain prototype', function () {
-        class Fancy {
-            raw_data = { contract: [] };
-            get txID() {
-                return 'from-prototype';
-            }
-        }
+    it('gives the copy a plain prototype, also for a null-prototype input', function () {
         const nullProto = Object.assign(Object.create(null), { txID: 'x' });
 
-        const fromClass = cloneTransaction(new Fancy());
-        const fromNullProto = cloneTransaction(nullProto);
+        const out = cloneTransaction(nullProto);
 
-        assert.strictEqual(Object.getPrototypeOf(fromClass), Object.prototype);
-        assert.isFalse('txID' in fromClass);
-        assert.deepEqual(fromClass, { raw_data: { contract: [] } });
-        assert.strictEqual(Object.getPrototypeOf(fromNullProto), Object.prototype);
-        assert.equal(fromNullProto.txID, 'x');
+        assert.strictEqual(Object.getPrototypeOf(out), Object.prototype);
+        assert.equal(out.txID, 'x');
+    });
+
+    it('throws on class instances, naming the path', function () {
+        class Fancy {
+            amount = 1;
+        }
+
+        assert.throws(
+            () => cloneTransaction({ raw_data: { contract: [{ parameter: new Fancy() }] } }),
+            'Invalid transaction provided: not a plain object at transaction.raw_data.contract[0].parameter'
+        );
+        assert.throws(() => cloneTransaction(new Fancy()), 'Invalid transaction provided: not a plain object at transaction');
     });
 
     it('does not let an own __proto__ key re-target the prototype of the copy', function () {

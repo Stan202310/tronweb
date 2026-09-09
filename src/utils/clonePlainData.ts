@@ -12,8 +12,9 @@ export interface ClonePlainDataOptions {
  * `Uint8Array` when `bytes` is set — into fresh plain objects and arrays. Unlike a JSON
  * round-trip it keeps `bigint` and `undefined` values as they are.
  *
- * Anything else (functions, symbols, `Date`, `Map`, ...) and circular references are
- * rejected with the error built by `options.invalid(reason, path)`.
+ * Anything else (functions, symbols, class instances, `Date`, `Map`, ...) and circular
+ * references are rejected with the error built by `options.invalid(reason, path)`.
+ * Values from another realm (an iframe, a vm context) are accepted like local ones.
  */
 export function clonePlainData<T>(value: T, options: ClonePlainDataOptions): T {
     return clone(value, options.root, new Set(), options) as T;
@@ -35,15 +36,17 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
             throw options.invalid(`unsupported ${typeof value}`, path);
     }
 
-    if (options.bytes && value instanceof Uint8Array) {
-        return new Uint8Array(value);
-    }
-
     const isArray = Array.isArray(value);
     if (!isArray) {
         const tag = Object.prototype.toString.call(value);
+        if (options.bytes && ArrayBuffer.isView(value) && tag === '[object Uint8Array]') {
+            return new Uint8Array(value as Uint8Array);
+        }
         if (tag !== '[object Object]') {
             throw options.invalid(`unsupported ${tag.slice(8, -1)}`, path);
+        }
+        if (!isPlainObject(value)) {
+            throw options.invalid('not a plain object', path);
         }
     }
 
@@ -74,4 +77,12 @@ function clone(value: unknown, path: string, ancestors: Set<object>, options: Cl
 
     ancestors.delete(value);
     return copy;
+}
+
+// A plain object's prototype is `null` or a realm's `Object.prototype`, which has no
+// prototype of its own. Checked by shape rather than against this realm's `Object.prototype`
+// so that objects from another realm (an iframe, a vm context) are recognised too.
+function isPlainObject(value: object): boolean {
+    const proto = Object.getPrototypeOf(value);
+    return proto === null || Object.getPrototypeOf(proto) === null;
 }
