@@ -14,7 +14,6 @@ import {
     overloadArities,
     resolveFunctionFragment,
 } from '../../utils/abi.js';
-import { clonePlainData } from '../../utils/clonePlainData.js';
 
 // ─── Runtime ─────────────────────────────────────────────────────────────────
 
@@ -323,18 +322,6 @@ async function invokeWrite(
 }
 
 /**
- * Deep-copies ABI fragment `index` into plain data. Anything that is not plain ABI data
- * (functions, `Date`, circular references, ...) is rejected with
- * `Invalid ABI provided: <reason> at <path>`.
- */
-function snapshotFragment(fragment: FunctionFragment, index: number): FunctionFragment {
-    return clonePlainData(fragment, {
-        root: `abi[${index}]`,
-        invalid: (reason, path) => new Error(`Invalid ABI provided: ${reason} at ${path}`),
-    });
-}
-
-/**
  * Build the `contract.read` namespace: every `view`/`pure` (or legacy
  * `constant`) ABI function exposed as
  * `read.fn([args], { from, value })`, executed through
@@ -353,9 +340,9 @@ export function buildReadNamespace<Abi extends ContractAbiInterface>(contract: C
             return invokeRead(contract, resolveName, parameters.args, parameters.options as AnyReadOptions);
         };
 
-    for (const [index, fragment] of contract.abi.entries()) {
+    for (const fragment of contract.abi) {
         if (fragment.type !== 'function' || !('name' in fragment)) continue;
-        const functionFragment = snapshotFragment(fragment as FunctionFragment, index);
+        const functionFragment = fragment as FunctionFragment;
         if (!isReadOnlyFunctionFragment(functionFragment)) continue;
 
         const name = functionFragment.name;
@@ -389,9 +376,9 @@ export function buildWriteNamespace<Abi extends ContractAbiInterface>(contract: 
             return invokeWrite(contract, resolveName, parameters.args, parameters.options as AnyWriteOptions);
         };
 
-    for (const [index, fragment] of contract.abi.entries()) {
+    for (const fragment of contract.abi) {
         if (fragment.type !== 'function' || !('name' in fragment)) continue;
-        const functionFragment = snapshotFragment(fragment as FunctionFragment, index);
+        const functionFragment = fragment as FunctionFragment;
         if (isReadOnlyFunctionFragment(functionFragment)) continue;
 
         const name = functionFragment.name;
