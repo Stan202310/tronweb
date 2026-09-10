@@ -2637,7 +2637,7 @@ describe('TronWeb.transactionBuilder', function () {
                 issuerAddress
             );
             const { data } = tx.transaction.raw_data.contract[0].parameter.value;
-            assert.isTrue(data.endsWith('01'.repeat(32)), data);
+            assert.isTrue(data!.endsWith('01'.repeat(32)), data);
         });
 
         it('should trigger smart contract successfully', async function () {
