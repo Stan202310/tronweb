@@ -1,6 +1,28 @@
 Change Log
 =========
 
+__6.5.1__
+
+## Improvements
+
+- Inputs are validated and processed from a plain-data snapshot
+
+  Several APIs now take a plain-data snapshot of their inputs at entry and use that snapshot consistently for validation and processing. Previously they read the caller's object several times, so a `Proxy` or a getter could show the validation one value and hand a different one to the signing or the request. An operation is now always carried out against the same input state it was validated against.
+
+  Affected: `sign`, `multiSign`, `signTypedData` (incl. `_signTypedData`, `utils.typedData.signTypedData`), `ecRecover`, `newTxID` (incl. `extendExpiration`, `addUpdateData`), ABI loading in `Contract` (constructor, `loadAbi`, `at`), and `triggerSmartContract` / `triggerConstantContract` / `triggerConfirmedConstantContract` / `estimateEnergy`. Contract method `.call()` / `.send()` and the `read` / `write` namespaces inherit the same behavior.
+
+- Caller-provided objects are no longer modified
+
+  - `sign` no longer appends to the transaction's `signature` array, and `multiSign` no longer writes `Permission_id`. Code that kept using the object it passed in must switch to the returned transaction.
+  - `triggerConstantContract` / `triggerConfirmedConstantContract` / `estimateEnergy` no longer write internal flags into the options object, so a reused options object no longer carries them into later calls.
+  - `Contract` no longer lowercases `type` / `stateMutability` in the caller's ABI, and `contract.abi` is now an internal copy. Edits made to the original ABI after loading no longer affect the contract instance.
+
+- Input requirements
+
+  Snapshotting preserves `bigint`, and `Uint8Array` where it was already supported (typed-data byte values such as `salt`, `bytes` arguments in `parametersV2`). Plain objects and arrays from another realm (an iframe, a `vm` context) are accepted like local ones.
+
+  Inputs that are not plain data are now rejected: class instances, `Date`, functions, typed arrays outside the two cases above, circular references, and nesting deeper than 64 levels. Errors are reported as `Invalid transaction provided`, `Invalid typed data`, `Invalid options provided` or `Invalid ABI provided`, each followed by the reason and the path to the offending value.
+
 __6.5.0__
 
 ## New Features
