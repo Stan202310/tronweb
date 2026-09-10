@@ -2486,6 +2486,8 @@ export class TransactionBuilder {
     }
 
     async alterTransaction<T extends Transaction>(transaction: T, options: AlterTransactionOptions = {}) {
+        transaction = cloneTransaction(transaction);
+
         if (Reflect.has(transaction, 'signature')) throw new Error('You can not extend the expiration of a signed transaction.');
 
         if (options.data) {
