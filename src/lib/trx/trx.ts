@@ -55,18 +55,19 @@ export class Trx extends AbstractTrx<false> {
     }
 
     static ecRecover(transaction: SignedTransaction): Address | Address[] {
-        if (!txCheck(transaction)) {
+        const tx = cloneTransaction(transaction);
+        if (!txCheck(tx)) {
             throw new Error('Invalid transaction');
         }
-        if (!transaction.signature?.length) {
+        if (!tx.signature?.length) {
             throw new Error('Transaction is not signed');
         }
-        const txID = transaction.txID;
-        if (transaction.signature.length === 1) {
-            const tronAddress = ecRecover(txID, transaction.signature[0]);
+        const txID = tx.txID;
+        if (tx.signature.length === 1) {
+            const tronAddress = ecRecover(txID, tx.signature[0]);
             return TronWeb.address.fromHex(tronAddress);
         }
-        return transaction.signature.map((sig) => {
+        return tx.signature.map((sig) => {
             const tronAddress = ecRecover(txID, sig);
             return TronWeb.address.fromHex(tronAddress);
         });

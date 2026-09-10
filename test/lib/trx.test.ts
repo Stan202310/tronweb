@@ -661,8 +661,8 @@ describe('TronWeb.trx', function () {
                 const tx = await tronWeb.transactionBuilder.sendTrx(accounts.b58[idx - 1], 10, accounts.b58[idx]);
                 const signed = await tronWeb.trx.multiSign(await tronWeb.trx.sign(tx, accounts.pks[idx]), accounts.pks[idx + 1]);
 
-                // txCheck reads txID once; the recovery gets one more real read and must not ask again.
-                const recovered = tronWeb.trx.ecRecover(withSwappingTxID(signed, 2));
+                // The snapshot reads txID exactly once; validation and every recovery use that value.
+                const recovered = tronWeb.trx.ecRecover(withSwappingTxID(signed));
                 assert.deepEqual(recovered, [accounts.b58[idx], accounts.b58[idx + 1]]);
             });
 
