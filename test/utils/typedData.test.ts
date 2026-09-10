@@ -226,4 +226,53 @@ describe('TronWeb.utils.typedData', function () {
             assert.throws(() => sign(domain, circular, value), 'Invalid typed data: circular reference at types.Mail[1]');
         });
     });
+
+    describe('#verifyTypedData', function () {
+        const privateKey = '0x' + '01'.repeat(32);
+
+        const domain = {
+            name: 'Snapshot Test',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+        };
+
+        const types = {
+            Mail: [{ name: 'contents', type: 'string' }],
+        };
+
+        const value = { contents: 'Hello, Bob!' };
+
+        const signature = utils.typedData.signTypedData(domain, types, value, privateKey);
+        const signer = utils.typedData.verifyTypedData(domain, types, value, signature);
+
+        it('hashes the domain it read first when a domain getter changes its answer between reads', function () {
+            let reads = 0;
+            const trapped = { ...domain };
+            Object.defineProperty(trapped, 'chainId', {
+                enumerable: true,
+                configurable: true,
+                get: () => (reads++ === 0 ? 1 : 2),
+            });
+
+            assert.equal(utils.typedData.verifyTypedData(trapped, types, value, signature), signer);
+        });
+
+        it('recovers the signer of a signature over a field named __proto__', function () {
+            const protoTypes = { Msg: [{ name: '__proto__', type: 'bool' }] };
+            const valueFalse = JSON.parse('{"__proto__": false}');
+            const valueTrue = JSON.parse('{"__proto__": true}');
+            const protoSignature = utils.typedData.signTypedData(domain, protoTypes, valueFalse, privateKey);
+
+            assert.equal(utils.typedData.verifyTypedData(domain, protoTypes, valueFalse, protoSignature), signer);
+            assert.notEqual(utils.typedData.verifyTypedData(domain, protoTypes, valueTrue, protoSignature), signer);
+        });
+
+        it('rejects a domain or types that are not plain typed data, naming the path', function () {
+            assert.throws(
+                () => utils.typedData.verifyTypedData({ ...domain, chainId: () => 1 } as any, types, value, signature),
+                'Invalid typed data: unsupported function at domain.chainId'
+            );
+        });
+    });
 });

@@ -128,7 +128,7 @@ export class Trx extends AbstractTrx<false> {
         signature: string,
         address: string
     ) {
-        const messageDigest = utils.typedData.TypedDataEncoder.hash(domain, types, value);
+        const messageDigest = utils.typedData.hashTypedData(domain, types, value);
         const recovered = recoverAddress(messageDigest, Signature.from(`0x${signature.replace(/^0x/, '')}`));
 
         const tronAddress = ADDRESS_PREFIX + recovered.substr(2);
