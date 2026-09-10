@@ -690,8 +690,12 @@ function cloneInput<T>(input: T, root: string): T {
 }
 
 // Copies a leaf of the `value` walk: `Uint8Array` leaves into fresh arrays, everything else as is.
+// Checked like the clone helpers do — `instanceof` would miss arrays from another realm.
 function copyLeaf(_type: string, leaf: unknown): unknown {
-    return leaf instanceof Uint8Array ? new Uint8Array(leaf) : leaf;
+    if (ArrayBuffer.isView(leaf) && Object.prototype.toString.call(leaf) === '[object Uint8Array]') {
+        return new Uint8Array(leaf as Uint8Array);
+    }
+    return leaf;
 }
 
 /**

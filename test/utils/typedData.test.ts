@@ -1,4 +1,5 @@
 import { assert } from 'vitest';
+import { runInNewContext } from 'node:vm';
 import tronWebBuilder from '../helpers/tronWebBuilder.js';
 import diskUtils from '../testcases/src/disk-utils.js';
 const { loadTests } = diskUtils;
@@ -207,6 +208,18 @@ describe('TronWeb.utils.typedData', function () {
 
             // ...so false and true no longer collapse into the same signature.
             assert.notEqual(sign(domain, protoTypes, valueFalse), sign(domain, protoTypes, valueTrue));
+        });
+
+        it('accepts Uint8Array bytes values from another realm, in the value like in the domain', function () {
+            const bytesTypes = {
+                Msg: [{ name: 'payload', type: 'bytes' }],
+            };
+            const payload = runInNewContext('new Uint8Array([1, 2, 3])') as Uint8Array;
+            const salt = runInNewContext('new Uint8Array(32).fill(9)') as Uint8Array;
+
+            const signature = sign({ ...domain, salt }, bytesTypes, { payload });
+
+            assert.equal(signature, sign({ ...domain, salt: new Uint8Array(32).fill(9) }, bytesTypes, { payload: new Uint8Array([1, 2, 3]) }));
         });
 
         it('keeps ignoring value fields outside the types', function () {
