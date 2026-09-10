@@ -194,6 +194,21 @@ describe('TronWeb.utils.typedData', function () {
             );
         });
 
+        it('signs the actual value of a field named __proto__', function () {
+            const protoTypes = { Msg: [{ name: '__proto__', type: 'bool' }] };
+            // JSON.parse creates a real own property; an object literal's `__proto__:` would not.
+            const valueFalse = JSON.parse('{"__proto__": false}');
+            const valueTrue = JSON.parse('{"__proto__": true}');
+
+            // The snapshot keeps the field as an own property with its value...
+            const copy = utils._TypedDataEncoder.from(protoTypes).visit(valueFalse, (_type: string, leaf: unknown) => leaf);
+            assert.isTrue(Object.prototype.hasOwnProperty.call(copy, '__proto__'));
+            assert.equal(copy['__proto__'], false);
+
+            // ...so false and true no longer collapse into the same signature.
+            assert.notEqual(sign(domain, protoTypes, valueFalse), sign(domain, protoTypes, valueTrue));
+        });
+
         it('keeps ignoring value fields outside the types', function () {
             const signature = sign(domain, types, { contents: 'Hello, Bob!', deadline: new Date(), self: value });
 

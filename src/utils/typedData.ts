@@ -471,10 +471,12 @@ export class TypedDataEncoder {
         // Struct
         const fields = this.types[type];
         if (fields) {
+            // Null prototype: a field named `__proto__` must land as an own property
+            // instead of hitting the `Object.prototype` setter and being dropped.
             return fields.reduce((accum, { name, type }) => {
                 accum[name] = this._visit(type, value[name], callback);
                 return accum;
-            }, <Record<string, any>>{});
+            }, <Record<string, any>>Object.create(null));
         }
 
         assertArgument(false, `unknown type: ${type}`, 'type', type);
