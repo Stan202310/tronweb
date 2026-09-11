@@ -89,10 +89,15 @@ function clone(value: unknown, path: string, depth: number, ancestors: Set<objec
         const source = value as Record<string, unknown>;
         const out: Record<string, unknown> = {};
         for (const key of Object.keys(source)) {
-            // Assigning an own `__proto__` key would re-target the copy's prototype
-            // instead of adding a data property.
-            if (key === '__proto__') continue;
-            out[key] = clone(source[key], `${path}.${key}`, depth + 1, ancestors, options);
+            const item = clone(source[key], `${path}.${key}`, depth + 1, ancestors, options);
+            if (key === '__proto__') {
+                // Assigning an own `__proto__` key would re-target the copy's prototype instead
+                // of adding a data property. Define it so it stays a key of the copy, as it was
+                // of the source (typed-data `types` may name a struct `__proto__`).
+                Object.defineProperty(out, key, { value: item, writable: true, enumerable: true, configurable: true });
+            } else {
+                out[key] = item;
+            }
         }
         copy = out;
     }

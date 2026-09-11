@@ -204,15 +204,32 @@ describe('TronWeb.utils.clone', function () {
             assert.throws(() => cloneTransaction(new Fancy()), 'Invalid transaction provided: not a plain object at transaction');
         });
 
-        it('does not let an own __proto__ key re-target the prototype of the copy', function () {
+        it('keeps an own __proto__ key as a data property of the copy without re-targeting its prototype', function () {
+            // JSON.parse creates a real own property; an object literal's `__proto__:` would not.
             const input = JSON.parse('{"__proto__": {"polluted": true}, "txID": "x"}');
 
             const out = cloneTransaction(input);
 
             assert.strictEqual(Object.getPrototypeOf(out), Object.prototype);
             assert.isFalse('polluted' in out);
-            assert.isFalse(Object.prototype.hasOwnProperty.call(out, '__proto__'));
-            assert.equal(out.txID, 'x');
+            assert.deepEqual(Object.getOwnPropertyDescriptor(out, '__proto__'), {
+                value: { polluted: true },
+                writable: true,
+                enumerable: true,
+                configurable: true,
+            });
+            assert.notStrictEqual(out['__proto__'], input['__proto__']);
+            assert.deepEqual(Object.keys(out), ['__proto__', 'txID']);
+            assert.equal(JSON.stringify(out), '{"__proto__":{"polluted":true},"txID":"x"}');
+        });
+
+        it('names the path of an invalid value under an own __proto__ key', function () {
+            const input = Object.defineProperty({ txID: 'x' }, '__proto__', { value: () => 1, enumerable: true });
+
+            assert.throws(
+                () => cloneTransaction(input),
+                'Invalid transaction provided: unsupported function at transaction.__proto__'
+            );
         });
 
         it('clones shared (non-circular) references into independent copies', function () {

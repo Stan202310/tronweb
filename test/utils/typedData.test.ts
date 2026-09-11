@@ -210,6 +210,24 @@ describe('TronWeb.utils.typedData', function () {
             assert.notEqual(sign(domain, protoTypes, valueFalse), sign(domain, protoTypes, valueTrue));
         });
 
+        it('signs a struct type named __proto__ like 6.5.0 did, as the primary type and as a child type', function () {
+            // JSON.parse creates a real own property; an object literal's `__proto__:` would not.
+            const primaryTypes = JSON.parse('{"__proto__": [{"name": "contents", "type": "string"}]}');
+            const childTypes = JSON.parse(
+                '{"Mail": [{"name": "from", "type": "__proto__"}], "__proto__": [{"name": "name", "type": "string"}]}'
+            );
+
+            // Signatures 6.5.0 produced over the same inputs.
+            assert.equal(
+                sign(domain, primaryTypes, value),
+                '0x50fda93510f3b2061a5b068e8cd34cc45d7c1eee09a9da526a585ba53e3a16380dd4869722599007ef30546b438552b3e322c9f7d5c7dd2f9dd4e3fd2d8a24ec1b'
+            );
+            assert.equal(
+                sign(domain, childTypes, { from: { name: 'Alice' } }),
+                '0x00113dd43af8bfb244a6d9c31c6ff81d82be145a6d2a7d8db9464f2fc349674268e4351d44f6771fbde6e4fe4483d99deb6fa88b22c2fd7e44f9ca76fd9c474f1b'
+            );
+        });
+
         it('accepts Uint8Array bytes values from another realm, in the value like in the domain', function () {
             const bytesTypes = {
                 Msg: [{ name: 'payload', type: 'bytes' }],
@@ -279,6 +297,19 @@ describe('TronWeb.utils.typedData', function () {
 
             assert.equal(utils.typedData.verifyTypedData(domain, protoTypes, valueFalse, protoSignature), signer);
             assert.notEqual(utils.typedData.verifyTypedData(domain, protoTypes, valueTrue, protoSignature), signer);
+        });
+
+        it('recovers the signer of a 6.5.0 signature over a struct type named __proto__', function () {
+            const protoTypes = JSON.parse('{"__proto__": [{"name": "contents", "type": "string"}]}');
+            // Produced by 6.5.0 with `privateKey` over `domain`, `protoTypes` and `value`.
+            const oldSignature =
+                '0x50fda93510f3b2061a5b068e8cd34cc45d7c1eee09a9da526a585ba53e3a16380dd4869722599007ef30546b438552b3e322c9f7d5c7dd2f9dd4e3fd2d8a24ec1b';
+
+            assert.equal(utils.typedData.verifyTypedData(domain, protoTypes, value, oldSignature), signer);
+            assert.notEqual(
+                utils.typedData.verifyTypedData(domain, protoTypes, { contents: 'Goodbye, Bob!' }, oldSignature),
+                signer
+            );
         });
 
         it('rejects a domain or types that are not plain typed data, naming the path', function () {
